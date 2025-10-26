@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Photography Assistant — Ask Joshua's Bot</title>
+  <style>
+    :root { --bg:#0f0f10; --panel:#18191b; --text:#f5f5f7; --muted:#a9abb3; --accent:#9fd3ff; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; }
+    .wrap{ max-width:900px; margin:0 auto; padding: clamp(16px, 3vh, 32px); }
+    h1{ font-size: clamp(22px, 3.6vw, 34px); margin:0 0 8px; }
+    p.sub{ color:var(--muted); margin-top:6px; }
+    .card{ background:var(--panel); border:1px solid #24262a; border-radius:16px; overflow:hidden; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .chat{ height:60vh; overflow:auto; padding:20px; line-height:1.5; }
+    .row{ display:flex; gap:10px; padding:12px; border-top:1px solid #24262a; }
+    input[type="text"]{ flex:1; background:#121315; color:var(--text); border:1px solid #2c2f34; border-radius:12px; padding:12px 14px; outline:none; }
+    button{ background:var(--accent); color:#061018; border:none; border-radius:12px; padding:12px 16px; font-weight:600; cursor:pointer; }
+    .msg{ margin:8px 0; }
+    .you .bubble{ background:#0f2440; color:#d6ecff; }
+    .bot .bubble{ background:#202226; color:#f1f1f1; }
+    .bubble{ display:inline-block; padding:10px 12px; border-radius:12px; max-width: 80%; }
+    .label{ font-size:12px; color:var(--muted); margin-bottom:4px; }
+    .you .label{ color:#98bff1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Photography Assistant</h1>
+    <p class="sub">Ask about Joshua’s courses, assignments, events, or books. No login required.</p>
+
+    <div class="card">
+      <div id="chat" class="chat" aria-live="polite" aria-label="chat transcript"></div>
+      <div class="row">
+        <input id="msg" type="text" placeholder="Ask a question…" onkeydown="if(event.key==='Enter'){send()}"/>
+        <button onclick="send()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('msg');
+
+    function add(role, text){
+      const wrap = document.createElement('div');
+      wrap.className = 'msg ' + (role === 'you' ? 'you' : 'bot');
+      wrap.innerHTML = `<div class="label">${role === 'you' ? 'You' : 'Assistant'}</div><div class="bubble">${escapeHtml(text)}</div>`;
+      chat.appendChild(wrap);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function escapeHtml(str){
+      return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    async function send(){
+      const text = input.value.trim();
+      if(!text) return;
+      add('you', text);
+      input.value = '';
+      try{
+        const res = await fetch('/api/chat', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        add('bot', data.reply || "Hmm… I couldn't generate a reply.");
+      }catch(e){
+        add('bot', "Network error. Try again in a moment.");
+      }
+    }
+  </script>
+</body>
+</html>
